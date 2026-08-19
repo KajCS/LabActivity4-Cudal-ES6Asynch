@@ -1,43 +1,65 @@
-const apiURL = 'https://jsonplaceholder.typicode.com/posts';
+const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
-// Async function using ES6+ arrow function syntax
-const fetchAndProcessPosts = async () => {
+// Global array to store User 1 posts after initial fetch
+let userPosts = [];
+
+const statusEl = document.getElementById('status');
+const containerEl = document.getElementById('posts-container');
+const searchInput = document.getElementById('searchInput');
+
+// 1. Fetch & Store Data
+const fetchPosts = async () => {
   try {
-    // 1. Asynchronous fetch request
-    const response = await fetch(apiURL);
+    const response = await fetch(API_URL);
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    // Parse JSON asynchronously
     const posts = await response.json();
 
-    // 2. ES6+ Data Handling (Destructuring, Arrow functions, Array methods)
-    
-    // Filter posts for a specific user (e.g., userId 1)
-    // Destructuring 'userId' directly inside the filter parameter
-    const userOnePosts = posts
-      .filter(({ userId }) => userId === 1)
-      .map(({ id, title, body }) => ({
-        id,
-        // String transformation & Template Literals
-        formattedTitle: title.toUpperCase(),
-        summary: `${body.slice(0, 40)}...`
-      }));
+    // Initial array filter for userId 1
+    userPosts = posts.filter(({ userId }) => userId === 1);
 
-    // 3. Destructuring the first post to display clean output
-    const [firstPost, ...remainingPosts] = userOnePosts;
-
-    console.log(`Total Posts Fetched: ${posts.length}`);
-    console.log(`User 1 Posts Count: ${userOnePosts.length}`);
-    console.log('Sample Formatted Post:', firstPost);
-
-    return userOnePosts;
+    statusEl.textContent = `Showing ${userPosts.length} posts.`;
+    renderPosts(userPosts);
   } catch (error) {
-    console.error(`Fetch Error: ${error.message}`);
+    statusEl.textContent = `Error: ${error.message}`;
+    statusEl.style.color = '#d32f2f';
   }
 };
 
-// Execute the async function
-fetchAndProcessPosts();
+// 2. Render Posts to DOM
+const renderPosts = (postsToDisplay) => {
+  containerEl.innerHTML = '';
+
+  if (postsToDisplay.length === 0) {
+    containerEl.innerHTML = '<p class="no-results">No posts found matching your filter.</p>';
+    return;
+  }
+
+  postsToDisplay.forEach(({ id, title, body }) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <h3>#${id} ${title}</h3>
+      <p>${body}</p>
+    `;
+    containerEl.appendChild(card);
+  });
+};
+
+// 3. Live Filter Event Listener using .filter()
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+
+  // JavaScript .filter() checks title or body against query
+  const filteredPosts = userPosts.filter(({ title, body }) => 
+    title.toLowerCase().includes(query) || body.toLowerCase().includes(query)
+  );
+
+  statusEl.textContent = `Showing ${filteredPosts.length} of ${userPosts.length} posts.`;
+  renderPosts(filteredPosts);
+});
+
+fetchPosts();
